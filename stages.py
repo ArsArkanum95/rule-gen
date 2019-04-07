@@ -1,19 +1,24 @@
+from collections import defaultdict
+
+
 class Stage:
-    def __init__(self, rules, duration, step=1):
+    def __init__(self, rules, step=1):
         self._rules = rules
-        self._duration = duration
         self._step = step
 
-    def generate(self):
+    def generate(self, duration):
+        self._reset_all_rules()
+
         current_time = 0.
         generated_sequence = []
 
-        while current_time < self._duration:
+        while current_time < duration:
             new_current_time = current_time + self._step
             new_events = []
 
             for rule in self._rules:
-                result = rule(current_time=current_time, sequence=generated_sequence)
+                result = rule.produce_event(
+                    current_time=current_time, sequence=generated_sequence)
                 if result:
                     new_events.append(result)
 
@@ -26,5 +31,81 @@ class Stage:
 
             current_time = new_current_time
             
-
         return generated_sequence
+
+    def analyse(self, sequence):
+        self._reset_all_rules()
+
+        event_labels = defaultdict(list)
+        expected_events = self._get_next_expected_events(0., [])
+
+        current_event_id = 0
+        current_time = 0.
+
+        while current_event_id < len(sequence):
+            current_event = sequence[current_event_id]
+            current_event_time = current_event[2]
+
+            if current_time == current_event_time:
+                new_labels, filtered_expected_events = \
+                    self._process_expected_events(
+                        expected_events, current_event, current_time)
+                event_labels[current_event_id].extend(new_labels)
+                expected_events = filtered_expected_events
+
+                current_event_id += 1
+
+            current_history = sequence[:current_event_id]
+            expected_events.extend(
+                self._get_next_expected_events(
+                    current_time, current_history))
+
+            # current_event_time could have changed due to new current_event(_id)
+            if current_history:
+                current_event_time = current_history[-1][2]
+
+            current_time += self._step
+            if current_event_time < current_time:
+                current_time = current_event_time
+
+        return event_labels
+
+    def _reset_all_rules(self):
+        for rule in self._rules:
+            rule.reset_timer()
+
+    def _process_expected_events(self, expected_events, event, current_time):
+        new_labels = []
+        filtered_expected_events = []
+
+        current_sender_id, current_recipient_id, _ = event
+
+        for exp_event in expected_events:
+            rule, start_time, end_time = exp_event
+
+            if current_time > end_time:
+                continue
+
+            if rule.sender_id == current_sender_id and \
+               rule.recipient_id == current_recipient_id and \
+               start_time <= current_time <= end_time:
+                new_labels.append(rule)
+
+            filtered_expected_events.append(exp_event)
+
+        return new_labels, filtered_expected_events
+
+    def _get_next_expected_events(self, current_time, current_sequence):
+        expected_events = []
+
+        for rule in self._rules:
+            rule_activated = rule.test_condition(
+                current_time=current_time, sequence=current_sequence
+            )
+            if rule_activated:
+                expected_events.append((
+                    rule,
+                    *rule.get_timer_bounds(current_time)
+                ))
+
+        return expected_events
