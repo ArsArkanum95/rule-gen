@@ -31,28 +31,31 @@ class TimeCondition(AbstractCondition):
 
 class SequenceCondition(AbstractCondition):
     def __init__(self, sender_regexp, recipient_regexp, time_regexp):
-        assert len(sender_regexp) == len(recipient_regexp) == len(time_regexp)
+        assert len(sender_regexp) == len(recipient_regexp) == len(time_regexp) > 0
 
         self._sender_regexp = sender_regexp
         self._recipient_regexp = recipient_regexp
         self._time_regexp = time_regexp
 
     def __call__(self, *, sequence, reversed_=True, **kwargs):
+        if not sequence:
+            return False
+
         sender_regexp = self._sender_regexp
         recipient_regexp = self._recipient_regexp
         time_regexp = self._time_regexp
 
         if reversed_:
-            sequence = reversed(sequence)
-            sender_regexp = reversed(sender_regexp)
-            recipient_regexp = reversed(recipient_regexp)
-            time_regexp = reversed(time_regexp)
+            sequence = list(reversed(sequence))
+            sender_regexp = list(reversed(sender_regexp))
+            recipient_regexp = list(reversed(recipient_regexp))
+            time_regexp = list(reversed(time_regexp))
 
         state = 0
-        last_time = sequence[0][2]
+        last_time = None
 
         for sender, recipient, time in sequence:
-            if time_regexp[state] <= time - last_time:
+            if last_time is None or abs(time - last_time) <= time_regexp[state]:
                 if (sender_regexp[state] == '?' or sender_regexp[state] == sender) and \
                 (recipient_regexp[state] == '?' or recipient_regexp[state] == recipient):
                     state += 1
