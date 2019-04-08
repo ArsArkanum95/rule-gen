@@ -3,7 +3,6 @@ import random
 
 
 class AbstractTimer(abc.ABC):
-    @abc.abstractmethod
     def __init__(self, ready_timeout):
         self._start_time = None
         self._ready_timeout = ready_timeout
@@ -43,14 +42,15 @@ class DeterministicTimer(AbstractTimer):
 
 
 class ExponentialTimer(AbstractTimer):
-    def __init__(self, intensity, threshold):
+    def __init__(self, intensity, threshold, rounding=2):
         super().__init__(threshold)
         self._intensity = intensity
         self._threshold = threshold
+        self._rounding = rounding
 
     def __call__(self, current_time):
-        return self._call_if_ready(
-            current_time, self._draw_time)
+        return round(self._call_if_ready(current_time, self._draw_time),
+                     self._rounding)
 
     def get_bounds(self):
         return 0., self._threshold
