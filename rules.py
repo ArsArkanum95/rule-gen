@@ -26,11 +26,12 @@ class Rule:
         return False
 
     def test_condition(self, *, current_time, **kwargs):
-        if self._timer.is_ready(current_time):
+        if self._condition.call_deterministic(
+            current_time=current_time, **kwargs) and \
+           self._timer.is_ready(current_time):
             self._timer.start_timeout(current_time)
-            return self._condition.call_deterministic(
-                current_time=current_time, **kwargs)
-        return False
+            return True
+        return False    
 
     def reset_timer(self):
         self._timer.reset_timeout()

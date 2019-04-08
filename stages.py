@@ -13,7 +13,7 @@ class Stage:
         generated_sequence = []
 
         while current_time < duration:
-            new_current_time = current_time + self._step
+            last_event_time = None
             new_events = []
 
             for rule in self._rules:
@@ -26,10 +26,7 @@ class Stage:
                 generated_sequence.extend(sorted(new_events, key=lambda e: e[2]))
                 last_event_time = generated_sequence[-1][2]
 
-                if last_event_time < new_current_time:
-                    new_current_time = last_event_time
-
-            current_time = new_current_time
+            current_time = self._get_next_time(current_time, last_event_time)
             
         return generated_sequence
 
@@ -61,18 +58,22 @@ class Stage:
                     current_time, current_history))
 
             # current_event_time could have changed due to new current_event(_id)
-            if current_history:
-                current_event_time = current_history[-1][2]
+            if current_event_id < len(sequence):
+                current_event_time = sequence[current_event_id][2]
 
-            current_time += self._step
-            if current_event_time < current_time:
-                current_time = current_event_time
+            current_time = self._get_next_time(current_time, current_event_time)
 
         return event_labels
 
     def _reset_all_rules(self):
         for rule in self._rules:
             rule.reset_timer()
+
+    def _get_next_time(self, current_time, potential_next_time=None):
+        next_time = (current_time + self._step) // self._step * self._step
+        if potential_next_time is not None and potential_next_time < next_time:
+            return potential_next_time
+        return next_time
 
     def _process_expected_events(self, expected_events, event, current_time):
         new_labels = []

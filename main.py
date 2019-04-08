@@ -11,4 +11,5 @@ rule = Rule(0, 1, condition, timer)
 stage = Stage([rule])
 
 sequence = stage.generate(20)
-print(sequence)
+labels = stage.analyse(sequence)
+print(dict(labels))
