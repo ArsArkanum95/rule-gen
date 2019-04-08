@@ -9,8 +9,8 @@ class AbstractTimer(abc.ABC):
         self._ready_timeout = ready_timeout
 
     def is_ready(self, current_time):
-        return self._start_time is not None and \
-               current_time - self._start_time < self._ready_timeout
+        return not (self._start_time is not None and \
+               current_time - self._start_time < self._ready_timeout)
 
     def start_timeout(self, current_time):
         self._start_time = current_time
@@ -19,7 +19,7 @@ class AbstractTimer(abc.ABC):
         self._start_time = None
 
     def _call_if_ready(self, current_time, return_func):
-        if self.is_ready(current_time):
+        if not self.is_ready(current_time):
             return False
 
         self.start_timeout(current_time)
