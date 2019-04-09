@@ -10,7 +10,7 @@ rule1 = Rule(0, 1, condition1, timer1)
 
 timer2 = ExponentialTimer(1, 3)
 condition2 = SequenceCondition([0, 0], [1, 1], [5., 5.])
-rule2 = Rule(2, 3, condition2, timer2)
+rule2 = Rule(0, 1, condition2, timer2)
 
 stage = Stage([rule1, rule2])
 

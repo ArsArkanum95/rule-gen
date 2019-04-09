@@ -15,7 +15,11 @@ class Stage:
         new_events_buffer = []
 
         while current_time < duration:
-            last_event_time = None
+            if new_events_buffer and new_events_buffer[0][2] <= current_time:
+                accepted_events = list(takewhile(lambda e: e[2] <= current_time,
+                                                 new_events_buffer))
+                generated_sequence.extend(accepted_events)
+                new_events_buffer = new_events_buffer[len(accepted_events):]
 
             for rule in self._rules:
                 result = rule.produce_event(
@@ -23,17 +27,11 @@ class Stage:
                 if result:
                     new_events_buffer.append(result)
 
-            # TODO this is slow 
+            last_event_time = None
+
+            # TODO this is slow
             if new_events_buffer:
                 new_events_buffer.sort(key=lambda e: e[2])
-
-            if new_events_buffer and new_events_buffer[0][2] <= current_time:
-                accepted_events = list(takewhile(lambda e: e[2] <= current_time,
-                                                 new_events_buffer))
-                generated_sequence.extend(accepted_events)
-                new_events_buffer = new_events_buffer[len(accepted_events):]
-            
-            if new_events_buffer:
                 last_event_time = new_events_buffer[0][2]
 
             current_time = self._get_next_time(current_time, last_event_time)
