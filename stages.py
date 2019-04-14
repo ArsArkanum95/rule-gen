@@ -38,12 +38,13 @@ class Stage:
             
         return generated_sequence
 
-    def analyse(self, sequence):
+    def analyse(self, sequence, duration=None):
         self._reset_all_rules()
-        SEQ_DURATION = sequence[-1][2]
+        if duration is None:
+            duration = sequence[-1][2]
 
         event_labels = defaultdict(list)
-        expected_events = self._get_next_expected_events(0., [])
+        expected_events = self._get_next_expected_events(0., [], duration)
 
         current_event_id = 0
         current_time = 0.
@@ -55,8 +56,7 @@ class Stage:
             if current_time == current_event_time:
                 new_labels, filtered_expected_events = \
                     self._process_expected_events(
-                        expected_events,current_event, current_time,
-                        SEQ_DURATION)
+                        expected_events,current_event, current_time)
                 event_labels[current_event_id].extend(new_labels)
                 expected_events = filtered_expected_events
 
@@ -65,7 +65,7 @@ class Stage:
             current_history = sequence[:current_event_id]
             expected_events.extend(
                 self._get_next_expected_events(
-                    current_time, current_history))
+                    current_time, current_history, duration))
 
             # current_event_time could have changed due to new current_event(_id)
             if current_event_id < len(sequence):
@@ -86,14 +86,14 @@ class Stage:
             return potential_next_time
         return next_time
 
-    def _process_expected_events(self, expected_events, event, current_time, seq_duration):
+    def _process_expected_events(self, expected_events, event, current_time):
         new_labels = []
         filtered_expected_events = []
 
         current_sender_id, current_recipient_id, _ = event
 
         for exp_event in expected_events:
-            rule_id, activation_instance, start_time, end_time = exp_event
+            rule_id, activation_id, start_time, end_time = exp_event
 
             if current_time > end_time:
                 continue
@@ -102,26 +102,27 @@ class Stage:
             if rule.sender_id == current_sender_id and \
                rule.recipient_id == current_recipient_id and \
                start_time <= current_time <= end_time:
-                if end_time <= seq_duration:
-                    activation_instance()
-                new_labels.append((rule_id, activation_instance.id))
+                new_labels.append((rule_id, activation_id))
 
             filtered_expected_events.append(exp_event)
 
         return new_labels, filtered_expected_events
 
-    def _get_next_expected_events(self, current_time, current_sequence):
+    def _get_next_expected_events(self, current_time, current_sequence, seq_duration):
         expected_events = []
 
         for rule_id, rule in enumerate(self._rules):
-            rule_activated, activation_instance = rule.test_condition(
+            rule_activated, activation_id = rule.test_condition(
                 current_time=current_time, sequence=current_sequence
             )
             if rule_activated:
+                start_time, end_time = rule.get_timer_bounds(current_time)
+                if end_time <= seq_duration:
+                    rule.increment_activation_count()
                 expected_events.append((
                     rule_id,
-                    activation_instance,
-                    *rule.get_timer_bounds(current_time)
+                    activation_id,
+                    start_time, end_time
                 ))
 
         return expected_events
@@ -146,9 +147,9 @@ class Stage:
                 ))
 
                 if len(filtered_rules) == 1:
-                    mark_label_done(event_id, fitting_rules[0])
+                    mark_label_done(event_id, filtered_rules[0])
                     work_done = True
-                else:
+                elif len(filtered_rules) > 1:
                     new_rest_labels.append((event_id, filtered_rules))
 
             if not work_done:
@@ -175,9 +176,9 @@ class Stage:
         for rule_id, rule in enumerate(self._rules):
             result[rule_id] = min(
                 1.0, result[rule_id] / rule.covered_tests_count
-            )
+            ) if rule.covered_tests_count > 0 else 1.
 
-        return result
+        return dict(result)
 
     def _calculate_rules_prob_diff(self, label):
         probabilities = [self._rules[rule_info[0]].probability for rule_info in label[1]]

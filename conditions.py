@@ -1,11 +1,7 @@
 import abc
-import random
 
 
 class AbstractCondition(abc.ABC):
-    def call_deterministic(self, **kwargs):
-        return self.__call__(deterministic=True, **kwargs)
-
     @property
     def probability(self):
         return 1.
@@ -92,9 +88,5 @@ class NonDeterministicCondition(AbstractCondition):
     def probability(self):
         return self._probability
 
-    def __call__(self, *, determinictic=False, **kwargs):
-        if determinictic:
-            return self._condition(**kwargs)
-        if random.random() <= self._probability:
-            return self._condition(**kwargs)
-        return False
+    def __call__(self, **kwargs):
+        return self._condition(**kwargs)
