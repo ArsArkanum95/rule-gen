@@ -40,6 +40,7 @@ class Stage:
 
     def analyse(self, sequence):
         self._reset_all_rules()
+        SEQ_DURATION = sequence[-1][2]
 
         event_labels = defaultdict(list)
         expected_events = self._get_next_expected_events(0., [])
@@ -54,7 +55,8 @@ class Stage:
             if current_time == current_event_time:
                 new_labels, filtered_expected_events = \
                     self._process_expected_events(
-                        expected_events, current_event, current_time)
+                        expected_events,current_event, current_time,
+                        SEQ_DURATION)
                 event_labels[current_event_id].extend(new_labels)
                 expected_events = filtered_expected_events
 
@@ -71,7 +73,8 @@ class Stage:
 
             current_time = self._get_next_time(current_time, current_event_time)
 
-        return event_labels
+        num_events_covered, rules_activation_stats = self._calculate_analysis_statistics(event_labels)
+        return num_events_covered / len(sequence), rules_activation_stats
 
     def _reset_all_rules(self):
         for rule in self._rules:
@@ -83,22 +86,25 @@ class Stage:
             return potential_next_time
         return next_time
 
-    def _process_expected_events(self, expected_events, event, current_time):
+    def _process_expected_events(self, expected_events, event, current_time, seq_duration):
         new_labels = []
         filtered_expected_events = []
 
         current_sender_id, current_recipient_id, _ = event
 
         for exp_event in expected_events:
-            rule, start_time, end_time = exp_event
+            rule_id, activation_instance, start_time, end_time = exp_event
 
             if current_time > end_time:
                 continue
 
+            rule = self._rules[rule_id]
             if rule.sender_id == current_sender_id and \
                rule.recipient_id == current_recipient_id and \
                start_time <= current_time <= end_time:
-                new_labels.append(rule)
+                if end_time <= seq_duration:
+                    activation_instance()
+                new_labels.append((rule_id, activation_instance.id))
 
             filtered_expected_events.append(exp_event)
 
@@ -107,14 +113,75 @@ class Stage:
     def _get_next_expected_events(self, current_time, current_sequence):
         expected_events = []
 
-        for rule in self._rules:
-            rule_activated = rule.test_condition(
+        for rule_id, rule in enumerate(self._rules):
+            rule_activated, activation_instance = rule.test_condition(
                 current_time=current_time, sequence=current_sequence
             )
             if rule_activated:
                 expected_events.append((
-                    rule,
+                    rule_id,
+                    activation_instance,
                     *rule.get_timer_bounds(current_time)
                 ))
 
         return expected_events
+
+    def _calculate_analysis_statistics(self, labels):
+        events_done = set()
+        labels_done = set()
+
+        def mark_label_done(event_id, rule_info):
+            events_done.add(event_id)
+            labels_done.add(rule_info)
+
+        rest_labels = labels.items()
+        while rest_labels:
+            new_rest_labels = []
+            work_done = False
+
+            for event_id, fitting_rules in rest_labels:
+                filtered_rules = list(filter(
+                    lambda rule_info: rule_info not in labels_done,
+                    fitting_rules
+                ))
+
+                if len(filtered_rules) == 1:
+                    mark_label_done(event_id, fitting_rules[0])
+                    work_done = True
+                else:
+                    new_rest_labels.append((event_id, filtered_rules))
+
+            if not work_done:
+                most_certain_label = max(
+                    new_rest_labels,
+                    key=self._calculate_rules_prob_diff
+                )
+                most_certain_rule_info = max(
+                    most_certain_label[1],
+                    key=lambda ri: self._rules[ri[0]].probability
+                )
+                new_rest_labels.remove(most_certain_label)
+                mark_label_done(most_certain_label[0], most_certain_rule_info)
+
+            rest_labels = new_rest_labels
+
+        return len(events_done), self._calculate_rules_activation_stats(labels_done)
+
+    def _calculate_rules_activation_stats(self, labels):
+        result = defaultdict(lambda: 0)
+        for rule_id, _ in labels:
+            result[rule_id] += 1
+
+        for rule_id, rule in enumerate(self._rules):
+            result[rule_id] = min(
+                1.0, result[rule_id] / rule.covered_tests_count
+            )
+
+        return result
+
+    def _calculate_rules_prob_diff(self, label):
+        probabilities = [self._rules[rule_info[0]].probability for rule_info in label[1]]
+        p1 = max(probabilities)
+        probabilities.remove(p1)
+        p2 = max(probabilities)
+        return p1 - p2

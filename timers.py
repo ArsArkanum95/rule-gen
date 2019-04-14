@@ -1,11 +1,17 @@
 import abc
+import math
 import random
 
 
 class AbstractTimer(abc.ABC):
-    def __init__(self, ready_timeout):
+    def __init__(self, ready_timeout, probability=1.0):
         self._start_time = None
         self._ready_timeout = ready_timeout
+        self._probability = probability
+
+    @property
+    def probability(self):
+        return self._probability
 
     def is_ready(self, current_time):
         return not (self._start_time is not None and \
@@ -43,14 +49,17 @@ class DeterministicTimer(AbstractTimer):
 
 class ExponentialTimer(AbstractTimer):
     def __init__(self, intensity, threshold, rounding=2):
-        super().__init__(threshold)
+        probability = 1 - math.exp(-intensity * threshold)
+        super().__init__(threshold, probability)
         self._intensity = intensity
         self._threshold = threshold
         self._rounding = rounding
 
     def __call__(self, current_time):
-        return round(self._call_if_ready(current_time, self._draw_time),
-                     self._rounding)
+        time = self._call_if_ready(current_time, self._draw_time)
+        if time is not False:
+            return round(time, self._rounding)
+        return False
 
     def get_bounds(self):
         return 0., self._threshold
