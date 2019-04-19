@@ -78,7 +78,7 @@ class Stage:
 
     def _reset_all_rules(self):
         for rule in self._rules:
-            rule.reset_timer()
+            rule.reset_state()
 
     def _get_next_time(self, current_time, potential_next_time=None):
         next_time = (current_time + self._step) // self._step * self._step

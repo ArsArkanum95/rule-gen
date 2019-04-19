@@ -55,6 +55,8 @@ class ExponentialTimer(AbstractTimer):
         self._threshold = threshold
         self._rounding = rounding
 
+        self._min_time = pow(10, -rounding)
+
     def __call__(self, current_time):
         time = self._call_if_ready(current_time, self._draw_time)
         if time is not False:
@@ -62,8 +64,8 @@ class ExponentialTimer(AbstractTimer):
         return False
 
     def get_bounds(self):
-        return 0., self._threshold
+        return self._min_time, self._threshold
 
     def _draw_time(self):
-        time = random.expovariate(self._intensity) 
+        time = max(self._min_time, random.expovariate(self._intensity))
         return time if time <= self._threshold else False

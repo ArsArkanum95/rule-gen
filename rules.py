@@ -48,8 +48,10 @@ class Rule:
     def increment_activation_count(self):
         self._covered_tests_count += 1
 
-    def reset_timer(self):
+    def reset_state(self):
         self._timer.reset_timeout()
+        self._last_succ_test_id = 0
+        self._covered_tests_count = 0
 
     def get_timer_bounds(self, current_time):
         start, end = self._timer.get_bounds()
