@@ -1,6 +1,8 @@
 from collections import defaultdict
 from itertools import takewhile
 
+from scipy.stats import binom_test
+
 
 class Stage:
     def __init__(self, rules, step=1):
@@ -174,9 +176,16 @@ class Stage:
             result[rule_id] += 1
 
         for rule_id, rule in enumerate(self._rules):
-            result[rule_id] = min(
-                1.0, result[rule_id] / rule.covered_tests_count
-            ) if rule.covered_tests_count > 0 else 1.
+            num_total = rule.covered_tests_count
+            if num_total == 0:
+                result[rule_id] = None
+                continue
+
+            num_of_hits = min(num_total, result[rule_id])
+            result[rule_id] = [
+                num_of_hits / num_total,
+                binom_test(num_of_hits, num_total, rule.probability)
+            ]
 
         return dict(result)
 
