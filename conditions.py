@@ -7,7 +7,11 @@ class AbstractCondition(abc.ABC):
         return 1.
 
     @abc.abstractmethod
-    def __call__(self, **kwargs):
+    def __str__(self):
+        return ''
+
+    @abc.abstractmethod
+    def __call__(self):
         pass
 
 class TimeCondition(AbstractCondition):
@@ -15,6 +19,10 @@ class TimeCondition(AbstractCondition):
         self._comparison_operator = comparison_operator
         self._condition_time_1 = condition_time_1
         self._condition_time_2 = condition_time_2
+
+    def __str__(self):
+        return f'TimeCondition: {self._comparison_operator} ' \
+            f'{self._condition_time_1} {self._condition_time_2}'
 
     def __call__(self, *, current_time, **kwargs):
         if self._comparison_operator == 'less':
@@ -32,6 +40,10 @@ class SequenceCondition(AbstractCondition):
         self._sender_regexp = sender_regexp
         self._recipient_regexp = recipient_regexp
         self._time_regexp = time_regexp
+
+    def __str__(self):
+        return f'SequenceCondition: {self._sender_regexp} ' \
+            f'{self._recipient_regexp} {self._time_regexp}'
 
     def __call__(self, *, sequence, reversed_=True, **kwargs):
         if not sequence:
@@ -72,6 +84,10 @@ class AggregateCondition(AbstractCondition):
         self._condition_2 = condition_2
         self._logic_operator = logic_operator
 
+    def __str__(self):
+        return f'AggregateCondition:\n  {self._condition_1}\n  ' \
+            f'{self._logic_operator.upper()}\n  {self._condition_2}'
+
     def __call__(self, **kwargs):
         if self._logic_operator == 'and':
             return self._condition_1(**kwargs) and self._condition_2(**kwargs)
@@ -83,6 +99,9 @@ class NonDeterministicCondition(AbstractCondition):
     def __init__(self, condition, probability):
         self._condition = condition
         self._probability = probability
+
+    def __str__(self):
+        return str(self._condition) + f' p:{self._probability}'
 
     @property
     def probability(self):

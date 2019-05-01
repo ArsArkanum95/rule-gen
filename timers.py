@@ -9,6 +9,18 @@ class AbstractTimer(abc.ABC):
         self._ready_timeout = ready_timeout
         self._probability = probability
 
+    @abc.abstractmethod
+    def __str__(self):
+        return ''
+
+    @abc.abstractmethod
+    def __call__(self):
+        pass
+
+    @abc.abstractmethod
+    def get_bounds(self):
+        pass
+
     @property
     def probability(self):
         return self._probability
@@ -30,14 +42,14 @@ class AbstractTimer(abc.ABC):
         self.start_timeout(current_time)
         return return_func()
 
-    @abc.abstractmethod
-    def get_bounds(self):
-        pass
 
 class DeterministicTimer(AbstractTimer):
     def __init__(self, time):
         super().__init__(time)
         self._time = time
+
+    def __str__(self):
+        return f'DeterministicTimer: time - {self._time}'
 
     def __call__(self, current_time):
         return self._call_if_ready(
@@ -56,6 +68,9 @@ class ExponentialTimer(AbstractTimer):
         self._rounding = rounding
 
         self._min_time = pow(10, -rounding)
+
+    def __str__(self):
+        return f'ExponentialTimer: int - {self._intensity}, thr - {self._threshold}'
 
     def __call__(self, current_time):
         time = self._call_if_ready(current_time, self._draw_time)

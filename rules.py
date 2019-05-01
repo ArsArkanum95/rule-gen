@@ -13,6 +13,12 @@ class Rule:
         self._last_succ_test_id = 0
         self._covered_tests_count = 0
 
+    def __str__(self):
+        return f'sender: {self._sender_id}\n' \
+               f'recipient: {self._recipient_id}\n' \
+               f'{self._condition}\n' \
+               f'{self._timer}'
+
     @property
     def sender_id(self):
         return self._sender_id

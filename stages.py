@@ -9,6 +9,9 @@ class Stage:
         self._rules = rules
         self._step = step
 
+    def __str__(self):
+        return '\n\n'.join(map(str, self._rules))
+
     def generate(self, duration):
         self._reset_all_rules()
 
