@@ -26,7 +26,7 @@ def generate_stage(num_rules, max_aggregation_level, num_nodes, max_time):
     for _ in range(num_rules):
         timer = _generate_timer()
 
-        condition_aggregation_level = random.randrange(max_aggregation_level)
+        condition_aggregation_level = random.randrange(max_aggregation_level + 1)
         condition = _generate_condition(
             condition_aggregation_level, num_nodes, max_time
         )
@@ -77,7 +77,7 @@ def _generate_basic_condition(num_nodes, max_time):
         bc_args['condition_time_2'] = round(min(
             max_time, bc_args['condition_time_1'] + random.uniform(5, max(6, max_time / 10))), 2)
     elif basic_condition_class is conditions.SequenceCondition:
-        regexp_length = random.randint(1, 4)
+        regexp_length = random.randint(1, 3)
         bc_args = {
             'sender_regexp': _generate_random_sequence_regexp(num_nodes, regexp_length),
             'recipient_regexp': _generate_random_sequence_regexp(num_nodes, regexp_length),
