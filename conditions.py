@@ -45,7 +45,7 @@ class SequenceCondition(AbstractCondition):
         return f'SequenceCondition: {self._sender_regexp} ' \
             f'{self._recipient_regexp} {self._time_regexp}'
 
-    def __call__(self, *, sequence, reversed_=True, **kwargs):
+    def __call__(self, *, current_time, sequence, reversed_=True, **kwargs):
         if not sequence:
             return False
 
@@ -60,10 +60,10 @@ class SequenceCondition(AbstractCondition):
             time_regexp = list(reversed(time_regexp))
 
         state = 0
-        last_time = None
+        last_time = current_time
 
         for sender, recipient, time in sequence:
-            if last_time is None or abs(time - last_time) <= time_regexp[state]:
+            if abs(time - last_time) <= time_regexp[state]:
                 if (sender_regexp[state] == '?' or sender_regexp[state] == sender) and \
                 (recipient_regexp[state] == '?' or recipient_regexp[state] == recipient):
                     state += 1
@@ -94,6 +94,16 @@ class AggregateCondition(AbstractCondition):
         if self._logic_operator == 'or':
             return self._condition_1(**kwargs) or self._condition_2(**kwargs)
 
+    @property
+    def probability(self):
+        p1 = self._condition_1.probability
+        p2 = self._condition_2.probability
+
+        if self._logic_operator == 'and':
+            return p1 * p2
+        else:
+            return 1 - (1 - p1) * (1 - p2)
+
 
 class NonDeterministicCondition(AbstractCondition):
     def __init__(self, condition, probability):
@@ -103,9 +113,9 @@ class NonDeterministicCondition(AbstractCondition):
     def __str__(self):
         return str(self._condition) + f' p:{self._probability}'
 
+    def __call__(self, **kwargs):
+        return self._condition(**kwargs)
+
     @property
     def probability(self):
         return self._probability
-
-    def __call__(self, **kwargs):
-        return self._condition(**kwargs)
