@@ -6,11 +6,11 @@ from scipy.stats import binom_test
 
 class Stage:
     def __init__(self, rules, step=1):
-        self._rules = rules
+        self.rules = rules
         self._step = step
 
     def __str__(self):
-        return '\n\n'.join(map(str, self._rules))
+        return '\n\n'.join(map(str, self.rules))
 
     def generate(self, duration):
         self._reset_all_rules()
@@ -26,7 +26,7 @@ class Stage:
                 generated_sequence.extend(accepted_events)
                 new_events_buffer = new_events_buffer[len(accepted_events):]
 
-            for rule in self._rules:
+            for rule in self.rules:
                 result = rule.produce_event(
                     current_time=current_time, sequence=generated_sequence)
                 if result:
@@ -82,7 +82,7 @@ class Stage:
         return num_events_covered / len(sequence), rules_activation_stats
 
     def _reset_all_rules(self):
-        for rule in self._rules:
+        for rule in self.rules:
             rule.reset_state()
 
     def _get_next_time(self, current_time, potential_next_time=None):
@@ -103,7 +103,7 @@ class Stage:
             if current_time > end_time:
                 continue
 
-            rule = self._rules[rule_id]
+            rule = self.rules[rule_id]
             if rule.sender_id == current_sender_id and \
                rule.recipient_id == current_recipient_id and \
                start_time <= current_time <= end_time:
@@ -116,7 +116,7 @@ class Stage:
     def _get_next_expected_events(self, current_time, current_sequence, seq_duration):
         expected_events = []
 
-        for rule_id, rule in enumerate(self._rules):
+        for rule_id, rule in enumerate(self.rules):
             rule_activated, activation_id = rule.test_condition(
                 current_time=current_time, sequence=current_sequence
             )
@@ -164,7 +164,7 @@ class Stage:
                 )
                 most_certain_rule_info = max(
                     most_certain_label[1],
-                    key=lambda ri: self._rules[ri[0]].probability
+                    key=lambda ri: self.rules[ri[0]].probability
                 )
                 new_rest_labels.remove(most_certain_label)
                 mark_label_done(most_certain_label[0], most_certain_rule_info)
@@ -178,7 +178,7 @@ class Stage:
         for rule_id, _ in labels:
             result[rule_id] += 1
 
-        for rule_id, rule in enumerate(self._rules):
+        for rule_id, rule in enumerate(self.rules):
             num_total = rule.covered_tests_count
             if num_total == 0:
                 result[rule_id] = None
@@ -193,7 +193,7 @@ class Stage:
         return dict(result)
 
     def _calculate_rules_prob_diff(self, label):
-        probabilities = [self._rules[rule_info[0]].probability for rule_info in label[1]]
+        probabilities = [self.rules[rule_info[0]].probability for rule_info in label[1]]
         p1 = max(probabilities)
         probabilities.remove(p1)
         p2 = max(probabilities)
