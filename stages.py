@@ -157,7 +157,7 @@ class Stage:
                 elif len(filtered_rules) > 1:
                     new_rest_labels.append((event_id, filtered_rules))
 
-            if not work_done:
+            if not work_done and new_rest_labels:
                 most_certain_label = max(
                     new_rest_labels,
                     key=self._calculate_rules_prob_diff
