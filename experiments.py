@@ -1,11 +1,16 @@
+import numpy as np
+
+from stages import Stage
 from stage_generator import generate_stage
 
 
-def run_experiments(*, duration, **stage_gen_kwargs):
+def run_experiments(duration, stage, generator=None):
     while True:
-        stage = generate_stage(max_time=duration, **stage_gen_kwargs)
+        if generator:
+            sequence = generator()
+        else:
+            sequence = stage.generate(duration)
 
-        sequence = stage.generate(duration)
         if not sequence:
             continue
 
@@ -22,14 +27,33 @@ def run_experiments(*, duration, **stage_gen_kwargs):
             test_probability, test_p = rule_test_results
             true_probability = rule.probability
             
-            res.append((true_probability, test_probability, test_p))
+            res.append((abs(true_probability - test_probability), test_p))
 
-        true_probabilities, test_probabilities, test_p_values = list(zip(*res))
+        probabilities_difference, test_p_values = list(zip(*res))
+
+        probabilities_difference = np.array(probabilities_difference)
+        test_p_values = np.array(test_p_values)
+
+        print(probabilities_difference.mean(), probabilities_difference.std(), test_p_values.mean(), test_p_values.std())
         return
 
-run_experiments(
-    num_rules=10,
+stage = generate_stage(
+    num_rules=20,
     max_aggregation_level=0,
     num_nodes=2,
-    duration=100
+    max_time=1000
+)
+
+# import copy
+# stage2 = copy.deepcopy(stage)
+# stage2.rules.pop()
+# stage2.rules.pop()
+# stage2.rules.pop()
+# stage2.rules.pop()
+#print(len(stage.rules), len(stage2.rules))
+
+run_experiments(
+    1000,
+    stage,
+    lambda: list(zip([0] * 9000, [1] * 9000, range(0, 900, 1)))
 )
