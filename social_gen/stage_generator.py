@@ -1,10 +1,10 @@
 import random
 
-import timers
-import conditions
+from . import timers
+from . import conditions
 
-from rules import Rule
-from stages import Stage
+from .rules import Rule
+from .stages import Stage
 
 
 _TIMERS = [

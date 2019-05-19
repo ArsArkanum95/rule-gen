@@ -1,7 +1,7 @@
 import numpy as np
 
-from stages import Stage
-from stage_generator import generate_stage
+from .stages import Stage
+from .stage_generator import generate_stage
 
 
 def run_experiments(duration, stage, generator=None):
