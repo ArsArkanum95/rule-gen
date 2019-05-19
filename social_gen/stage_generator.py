@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 from . import timers
 from . import conditions
@@ -20,13 +21,26 @@ _TIME_COMPARISON_OPERATORS = ['less', 'more', 'between']
 _LOGIC_OPERATORS = ['and', 'or']
 
 
-def generate_stage(num_rules, max_aggregation_level, num_nodes, max_time):
+def generate_stage(num_rules, max_aggregation_level, num_nodes, max_time, force_uniformness=None):
     generated_rules = []
+    if force_uniformness is None:
+        force_uniformness = []
+
+    if 'agg_level' in force_uniformness:
+        agg_cardinality = num_rules // (max_aggregation_level + 1)
+        agg_levels = Counter({level: agg_cardinality for level in range(max_aggregation_level + 1)})
+        if num_rules % (max_aggregation_level + 1) != 0:
+            agg_levels[0] += 1
+        agg_levels = agg_levels.elements()
 
     for _ in range(num_rules):
         timer = _generate_timer()
 
-        condition_aggregation_level = random.randrange(max_aggregation_level + 1)
+        if 'agg_level' in force_uniformness:
+            condition_aggregation_level = next(agg_levels)
+        else:
+            condition_aggregation_level = random.randrange(max_aggregation_level + 1)
+
         condition = _generate_condition(
             condition_aggregation_level, num_nodes, max_time
         )
