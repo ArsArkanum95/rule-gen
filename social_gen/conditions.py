@@ -6,6 +6,10 @@ class AbstractCondition(abc.ABC):
     def probability(self):
         return 1.
 
+    @property
+    def aggregation_level(self):
+        return 0.
+
     @abc.abstractmethod
     def __str__(self):
         return ''
@@ -103,6 +107,13 @@ class AggregateCondition(AbstractCondition):
             return p1 * p2
         else:
             return 1 - (1 - p1) * (1 - p2)
+
+    @property
+    def aggregation_level(self):
+        return 1 + max(
+            self._condition_1.aggregation_level,
+            self._condition_2.aggregation_level
+        )
 
 
 class NonDeterministicCondition(AbstractCondition):

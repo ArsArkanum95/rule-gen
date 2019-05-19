@@ -32,6 +32,10 @@ class Rule:
         return self._condition.probability * self._timer.probability
 
     @property
+    def aggregation_level(self):
+        return self._condition.aggregation_level
+
+    @property
     def covered_tests_count(self):
         return self._covered_tests_count
 
