@@ -2,6 +2,7 @@ from collections import defaultdict
 from itertools import takewhile
 
 from scipy.stats import binom_test
+from tqdm import tqdm
 
 
 class Stage:
@@ -54,6 +55,7 @@ class Stage:
         current_event_id = 0
         current_time = 0.
 
+        pbar = tqdm(total=len(sequence))
         while current_event_id < len(sequence):
             current_event = sequence[current_event_id]
             current_event_time = current_event[2]
@@ -66,6 +68,7 @@ class Stage:
                 expected_events = filtered_expected_events
 
                 current_event_id += 1
+                pbar.update()
 
             current_history = sequence[:current_event_id]
             expected_events.extend(
@@ -78,6 +81,7 @@ class Stage:
 
             current_time = self._get_next_time(current_time, current_event_time)
 
+        pbar.close()
         num_events_covered, rules_activation_stats = self._calculate_analysis_statistics(event_labels)
         return num_events_covered / len(sequence), rules_activation_stats
 
