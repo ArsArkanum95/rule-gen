@@ -5,7 +5,7 @@ from . import timers
 from . import conditions
 
 from .rules import Rule
-from .stages import Stage
+from .stage import Stage
 
 
 _TIMERS = [
